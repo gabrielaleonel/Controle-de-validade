@@ -5,6 +5,8 @@ import { getSettings } from "./database";
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
     shouldPlaySound: true,
     shouldSetBadge: false,
   }),
@@ -41,33 +43,30 @@ export async function scheduleExpiryNotification(
   expiryDate: string
 ): Promise<string | undefined> {
   const settings = await getSettings();
-  if (!settings.notificacoesAtivas) return undefined;
-
-  const diasAntecedencia = settings.diasAntecedencia || 7;
-  const expiry = new Date(expiryDate);
-  const notifDate = new Date(expiry);
-  notifDate.setDate(notifDate.getDate() - diasAntecedencia);
-  notifDate.setHours(9, 0, 0, 0);
+  if (!settings.notificacoesAtivas || !settings.alertaNotificacao) return undefined;
 
   const now = new Date();
-  if (notifDate <= now) {
-    notifDate.setTime(now.getTime() + 60 * 1000);
-  }
-
+  const expiry = new Date(expiryDate);
   const daysUntilExpiry = Math.ceil(
     (expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
   );
 
-  let body: string;
-  if (daysUntilExpiry <= 0) {
-    body = `O produto "${productName}" já venceu!`;
-  } else if (daysUntilExpiry === 1) {
-    body = `O produto "${productName}" vence amanhã!`;
-  } else {
-    body = `O produto "${productName}" vence em ${daysUntilExpiry} dias.`;
-  }
+  const diasAntecedencia = settings.diasAntecedencia || 7;
+  if (daysUntilExpiry > diasAntecedencia) return undefined;
 
-  if (settings.alertaNotificacao) {
+  const times = [
+    { hour: 9, minute: 0 },
+    { hour: 14, minute: 0 },
+    { hour: 19, minute: 0 },
+  ];
+
+  const scheduledIds: string[] = [];
+
+  for (const time of times) {
+    const body = daysUntilExpiry <= 0
+      ? `O produto "${productName}" já venceu! Confira no app.`
+      : `Confira o produto "${productName}" no app - vencimento está próximo!`;
+
     const id = await Notifications.scheduleNotificationAsync({
       content: {
         title: "Produto próximo do vencimento",
@@ -75,17 +74,24 @@ export async function scheduleExpiryNotification(
         data: { productId },
         sound: "default",
       },
-      trigger: notifDate,
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DAILY,
+        hour: time.hour,
+        minute: time.minute,
+      },
     });
-    return id;
+    scheduledIds.push(id);
   }
 
-  return undefined;
+  return scheduledIds.join(",");
 }
 
 export async function cancelNotification(notificacaoId: string): Promise<void> {
   if (notificacaoId) {
-    await Notifications.cancelScheduledNotificationAsync(notificacaoId);
+    const ids = notificacaoId.split(",");
+    for (const id of ids) {
+      await Notifications.cancelScheduledNotificationAsync(id.trim()).catch(() => {});
+    }
   }
 }
 

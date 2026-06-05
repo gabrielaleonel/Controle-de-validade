@@ -42,10 +42,6 @@ export function isValidDate(dateString: string): boolean {
   return !isNaN(date.getTime());
 }
 
-export function isValidEmail(email: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-}
-
 export function isValidBarcode(code: string): boolean {
   return /^\d{8,14}$/.test(code.replace(/\s/g, ""));
 }

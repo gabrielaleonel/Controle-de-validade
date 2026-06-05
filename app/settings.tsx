@@ -17,19 +17,15 @@ import {
   requestNotificationPermissions,
   cancelAllNotifications,
 } from "../src/services/notifications";
-import { isValidEmail } from "../src/utils";
 
 export default function SettingsScreen() {
   const router = useRouter();
   const [settings, setSettings] = useState<AppSettings>({
-    email: "",
     notificacoesAtivas: true,
-    alertaEmail: false,
     alertaNotificacao: true,
     diasAntecedencia: 7,
     googleApiKey: "",
     googleCx: "",
-    resendApiKey: "",
   });
   const [saving, setSaving] = useState(false);
   const [diasText, setDiasText] = useState("7");
@@ -52,11 +48,6 @@ export default function SettingsScreen() {
     const dias = parseInt(diasText, 10);
     if (isNaN(dias) || dias < 1) {
       Alert.alert("Validação", "A quantidade de dias deve ser maior que zero.");
-      return;
-    }
-
-    if (settings.email && !isValidEmail(settings.email)) {
-      Alert.alert("Validação", "Informe um e-mail válido.");
       return;
     }
 
@@ -146,52 +137,6 @@ export default function SettingsScreen() {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Alerta por e-mail</Text>
-        <View style={styles.card}>
-          <SettingRow
-            icon="email"
-            label="E-mail para alertas"
-            description="Receber alertas de vencimento por e-mail"
-          >
-            <Switch
-              value={settings.alertaEmail}
-              onValueChange={(value) =>
-                setSettings({ ...settings, alertaEmail: value })
-              }
-              trackColor={{ false: "#E0E0E0", true: "#90CAF9" }}
-              thumbColor={settings.alertaEmail ? "#1565C0" : "#9E9E9E"}
-            />
-          </SettingRow>
-
-          {settings.alertaEmail && (
-            <>
-              <View style={styles.divider} />
-              <View style={styles.emailInputRow}>
-                <MaterialCommunityIcons name="email-outline" size={20} color="#757575" />
-                <TextInput
-                  style={styles.emailInput}
-                  placeholder="seu@email.com"
-                  value={settings.email}
-                  onChangeText={(text) =>
-                    setSettings({ ...settings, email: text })
-                  }
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  placeholderTextColor="#9E9E9E"
-                />
-              </View>
-              <View style={styles.emailNote}>
-                <MaterialCommunityIcons name="information-outline" size={16} color="#757575" />
-                <Text style={styles.emailNoteText}>
-                  Se não tiver um backend, o app abre o cliente de e-mail do celular preenchido.
-                </Text>
-              </View>
-            </>
-          )}
-        </View>
-      </View>
-
-      <View style={styles.section}>
         <Text style={styles.sectionTitle}>Antecedência</Text>
         <View style={styles.card}>
           <View style={styles.diasRow}>
@@ -205,44 +150,6 @@ export default function SettingsScreen() {
               placeholderTextColor="#9E9E9E"
             />
             <Text style={styles.diasLabel}>dias antes</Text>
-          </View>
-        </View>
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>E-mail automático</Text>
-        <View style={styles.card}>
-          <View style={styles.settingRow}>
-            <View style={styles.settingInfo}>
-              <View style={styles.settingRowHeader}>
-                <MaterialCommunityIcons name="api" size={20} color="#1565C0" />
-                <Text style={styles.settingLabel}>Resend API Key</Text>
-              </View>
-              <Text style={styles.settingDescription}>
-                Chave para enviar e-mails automáticos sem precisar de backend
-              </Text>
-            </View>
-          </View>
-          <View style={styles.divider} />
-          <View style={styles.emailInputRow}>
-            <MaterialCommunityIcons name="key-variant" size={20} color="#757575" />
-            <TextInput
-              style={styles.emailInput}
-              placeholder="re_..."
-              value={settings.resendApiKey || ""}
-              onChangeText={(text) =>
-                setSettings({ ...settings, resendApiKey: text })
-              }
-              autoCapitalize="none"
-              placeholderTextColor="#9E9E9E"
-            />
-          </View>
-          <View style={styles.emailNote}>
-            <MaterialCommunityIcons name="information-outline" size={16} color="#757575" />
-            <Text style={styles.emailNoteText}>
-              Crie uma chave grátis em https://resend.com . Sem isso, o app abre o
-              cliente de e-mail do celular preenchido.
-            </Text>
           </View>
         </View>
       </View>

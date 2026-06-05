@@ -18,14 +18,11 @@ export interface ProductWithStatus extends Product {
 }
 
 export interface AppSettings {
-  email: string;
   notificacoesAtivas: boolean;
-  alertaEmail: boolean;
   alertaNotificacao: boolean;
   diasAntecedencia: number;
   googleApiKey?: string;
   googleCx?: string;
-  resendApiKey?: string;
 }
 
 export interface ProductLookupResult {

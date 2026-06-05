@@ -16,14 +16,11 @@ interface StoreData {
 const DATA_FILE = `${documentDirectory}${DATABASE_NAME}.json`;
 
 const defaultSettings: AppSettings = {
-  email: "",
   notificacoesAtivas: true,
-  alertaEmail: false,
   alertaNotificacao: true,
   diasAntecedencia: 7,
   googleApiKey: "",
   googleCx: "",
-  resendApiKey: "",
 };
 
 function getDefaultData(): StoreData {
