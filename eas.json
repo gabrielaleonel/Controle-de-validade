@@ -8,6 +8,27 @@
         "NPM_FLAGS": "--legacy-peer-deps"
       }
     },
+    "preview-aab": {
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "env": {
+        "NPM_FLAGS": "--legacy-peer-deps"
+      }
+    },
+    "production": {
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "ios": {
+        "autoIncrement": true
+      },
+      "env": {
+        "NPM_FLAGS": "--legacy-peer-deps"
+      }
+    }
+  },
+  "submit": {
     "production": {}
   }
 }
