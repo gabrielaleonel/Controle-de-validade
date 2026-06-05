@@ -1,0 +1,74 @@
+{
+  "expo": {
+    "owner": "gabrielaleonel",
+    "name": "Validade",
+    "slug": "validade",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.validade.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Precisamos da câmera para escanear códigos de barras dos produtos.",
+        "NSPhotoLibraryUsageDescription": "Precisamos da galeria para adicionar fotos dos produtos."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.validade.app",
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.SCHEDULE_EXACT_ALARM",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Precisamos da câmera para escanear códigos de barras."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Precisamos da galeria para adicionar fotos dos produtos."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#ffffff"
+        }
+      ],
+      "expo-router"
+    ],
+    "scheme": "validade",
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "d849baad-116d-45eb-b092-2736f3225e59"
+      }
+    }
+  }
+}

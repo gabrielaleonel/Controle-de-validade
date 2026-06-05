@@ -1,0 +1,8 @@
+{
+  "name": "validade-email-api",
+  "version": "1.0.0",
+  "private": true,
+  "devDependencies": {
+    "@types/node": "^25.9.1"
+  }
+}
