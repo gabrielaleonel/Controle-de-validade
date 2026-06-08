@@ -96,35 +96,68 @@ export default function AddMedicationScreen() {
   }, [loadMedication]);
 
   useEffect(() => {
-    const clean = codigoBarras.replace(/\D/g, "");
-    if (clean.length < 8) return;
+    const cleanBarcode = codigoBarras.replace(/\D/g, "");
+    if (cleanBarcode.length < 8) return;
 
     const timer = setTimeout(async () => {
-      setIsLoading(true);
       try {
-        console.log("[Medicamento] Buscando código:", clean);
-        const result = await lookupProductByBarcode(clean);
-        console.log("[Medicamento] Resultado:", result);
+        console.log("[TELA] Buscando medicamento:", cleanBarcode);
+        const result = await lookupProductByBarcode(cleanBarcode);
+        console.log("[TELA] Resultado da busca:", result);
 
-        if (result?.nome) {
+        if (!result) {
+          console.log("[TELA] Nenhum medicamento encontrado");
+          return;
+        }
+
+        if (result.nome) {
           setNome(result.nome);
-          if (result.imagem) {
-            setFotoUri((prev) => prev ?? result.imagem ?? null);
-          }
-          const dosagemEncontrada = extrairDosagem(result.nome);
-          if (dosagemEncontrada) {
-            setDosagem(dosagemEncontrada);
-          }
+        }
+
+        if (result.imagem) {
+          setFotoUri(result.imagem);
+        }
+
+        const dosagem = extrairDosagem(result.nome);
+        if (dosagem) {
+          setDosagem(dosagem);
         }
       } catch (error) {
-        console.log("[Medicamento] Erro ao buscar medicamento:", error);
-      } finally {
-        setIsLoading(false);
+        console.log("[TELA] Erro ao buscar medicamento:", error);
       }
-    }, 600);
+    }, 800);
 
     return () => clearTimeout(timer);
   }, [codigoBarras]);
+
+  async function buscarMedicamentoPorCodigo(barcode: string): Promise<boolean> {
+    const clean = barcode.replace(/\D/g, "");
+    if (clean.length < 8 || clean.length > 14) return false;
+
+    try {
+      console.log("[TELA] Buscando medicamento:", clean);
+      const result = await lookupProductByBarcode(clean);
+      console.log("[TELA] Resultado da busca:", result);
+
+      if (!result?.nome) {
+        console.log("[TELA] Nenhum medicamento encontrado");
+        return false;
+      }
+
+      setNome(result.nome);
+      if (result.imagem) {
+        setFotoUri(result.imagem);
+      }
+      const dosagem = extrairDosagem(result.nome);
+      if (dosagem) {
+        setDosagem(dosagem);
+      }
+      return true;
+    } catch (error) {
+      console.log("[TELA] Erro ao buscar medicamento:", error);
+      return false;
+    }
+  }
 
   const handleBarcodeDetected = async (barcode: string) => {
     setShowScanner(false);
@@ -152,6 +185,15 @@ export default function AddMedicationScreen() {
     }
 
     setIsLoading(true);
+
+    const found = await buscarMedicamentoPorCodigo(barcode);
+    if (found) {
+      setBarcodeSource("product-lookup-pharmacy");
+      setBarcodeLookupAt(new Date().toISOString());
+      setIsLoading(false);
+      return;
+    }
+
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 8000);
@@ -178,6 +220,7 @@ export default function AddMedicationScreen() {
           setBarcodeSource(data.source || null);
           setBarcodeConfidence(data.confidence ?? null);
           setBarcodeLookupAt(new Date().toISOString());
+          setIsLoading(false);
           return;
         }
       }
@@ -511,7 +554,10 @@ export default function AddMedicationScreen() {
             style={[styles.input, styles.barcodeInput]}
             placeholder="Digite o código de barras"
             value={codigoBarras}
-            onChangeText={setCodigoBarras}
+            onChangeText={(text) => {
+              console.log("[TELA] Código digitado:", text);
+              setCodigoBarras(text);
+            }}
             keyboardType="numeric"
             placeholderTextColor="#9E9E9E"
           />
