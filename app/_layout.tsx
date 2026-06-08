@@ -24,6 +24,9 @@ export default function RootLayout() {
       <Stack.Screen name="edit-product/[id]" />
       <Stack.Screen name="details/[id]" />
       <Stack.Screen name="settings" />
+      <Stack.Screen name="add-medication" />
+      <Stack.Screen name="medication-details/[id]" />
+      <Stack.Screen name="edit-medication/[id]" />
     </Stack>
   );
 }

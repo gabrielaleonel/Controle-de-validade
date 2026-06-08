@@ -33,7 +33,6 @@
         "android.permission.WRITE_EXTERNAL_STORAGE",
         "android.permission.POST_NOTIFICATIONS",
         "android.permission.SCHEDULE_EXACT_ALARM",
-        "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO"
       ]
     },

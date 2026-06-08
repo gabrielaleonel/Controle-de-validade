@@ -6,31 +6,162 @@ export async function lookupProductByBarcode(
   barcode: string
 ): Promise<ProductLookupResult | null> {
   const cleanBarcode = barcode.replace(/\s/g, "");
+  console.log("[productLookup] Starting lookup for barcode:", cleanBarcode);
+
   if (!/^\d{8,14}$/.test(cleanBarcode)) {
+    console.log("[productLookup] Invalid barcode format:", barcode);
     return null;
+  }
+
+  // 1. Primeiro tenta farmácias brasileiras via backend
+  console.log("[productLookup] Trying pharmacy lookup via backend...");
+  const pharmacyResult = await lookupPharmacyBackend(cleanBarcode);
+  if (pharmacyResult) {
+    console.log(
+      "[productLookup] Found via pharmacy backend:",
+      pharmacyResult.nome
+    );
+    return pharmacyResult;
   }
 
   const settings = await getSettings();
 
+  // 2. Depois tenta Google Custom Search se tiver chave
   if (settings.googleApiKey && settings.googleCx) {
-    const result = await lookupGoogleCustomSearch(cleanBarcode, settings.googleApiKey, settings.googleCx);
-    if (result) return result;
+    console.log("[productLookup] Trying Google Custom Search...");
+    const result = await lookupGoogleCustomSearch(
+      cleanBarcode,
+      settings.googleApiKey,
+      settings.googleCx
+    );
+    if (result) {
+      console.log("[productLookup] Found via Google Custom Search");
+      return result;
+    }
+  }
+
+  // 3. Tenta APIs públicas
+  const eanResult = await lookupEanSearch(cleanBarcode);
+  if (eanResult) {
+    console.log("[productLookup] Found via EAN Search:", eanResult.nome);
+    return eanResult;
   }
 
   const result = await lookupUPCItemDB(cleanBarcode);
-  if (result) return result;
+  if (result) {
+    console.log("[productLookup] Found via UPC ItemDB:", result.nome);
+    return result;
+  }
 
   const result2 = await lookupOpenFoodFacts(cleanBarcode);
-  if (result2) return result2;
+  if (result2) {
+    console.log("[productLookup] Found via OpenFoodFacts:", result2.nome);
+    return result2;
+  }
 
-  const result3 = await lookupDuckDuckGo(cleanBarcode);
-  if (result3) return result3;
-
+  console.log("[productLookup] Product not found for barcode:", cleanBarcode);
   return null;
+}
+
+async function lookupPharmacyBackend(
+  barcode: string
+): Promise<ProductLookupResult | null> {
+  try {
+    // Buscar no backend que faz scraping das farmácias
+    const response = await fetch(
+      `http://localhost:3000/api/product-lookup-pharmacy?barcode=${barcode}`,
+      {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+        },
+      }
+    );
+
+    if (!response.ok) {
+      console.log(
+        "[productLookup] Pharmacy backend - Response not OK:",
+        response.status
+      );
+      return null;
+    }
+
+    const data = await response.json();
+    console.log("[productLookup] Pharmacy backend response:", data);
+
+    if (!data.success || !data.product?.nome) {
+      console.log("[productLookup] Pharmacy backend - No product");
+      return null;
+    }
+
+    const result: ProductLookupResult = {
+      nome: data.product.nome,
+    };
+
+    if (data.product.imagem) {
+      result.imagem = data.product.imagem;
+    }
+
+    if (data.product.marca) {
+      result.marca = data.product.marca;
+    }
+
+    return result;
+  } catch (err) {
+    console.log("[productLookup] Pharmacy backend error:", err);
+    return null;
+  }
+}
+
+async function lookupEanSearch(barcode: string): Promise<ProductLookupResult | null> {
+  try {
+    console.log("[productLookup] Trying EAN Search API...");
+    const response = await fetch(
+      `https://www.ean-search.org/api/1/json?barcode=${barcode}&key=test`,
+      {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+          "User-Agent": "ValidadeApp/1.0",
+        },
+      }
+    );
+
+    if (!response.ok) {
+      console.log("[productLookup] EAN Search - Response not OK:", response.status);
+      return null;
+    }
+
+    const data = await response.json();
+    console.log("[productLookup] EAN Search response:", data);
+    
+    if (!data.name || data.name === "error") {
+      console.log("[productLookup] EAN Search - Product not found");
+      return null;
+    }
+
+    const result: ProductLookupResult = {
+      nome: data.name || data.title || "",
+    };
+
+    if (data.brand) {
+      result.marca = data.brand;
+    }
+
+    if (data.image) {
+      result.imagem = data.image;
+    }
+
+    return result.nome ? result : null;
+  } catch (err) {
+    console.log("[productLookup] EAN Search error:", err);
+    return null;
+  }
 }
 
 async function lookupUPCItemDB(barcode: string): Promise<ProductLookupResult | null> {
   try {
+    console.log("[productLookup] Trying UPC ItemDB...");
     const response = await fetch(
       `https://api.upcitemdb.com/prod/trial/lookup?upc=${barcode}`,
       {
@@ -41,10 +172,20 @@ async function lookupUPCItemDB(barcode: string): Promise<ProductLookupResult | n
         },
       }
     );
-    if (!response.ok) return null;
+    
+    console.log("[productLookup] UPC ItemDB - Response status:", response.status);
+    if (!response.ok) {
+      console.log("[productLookup] UPC ItemDB - Not OK");
+      return null;
+    }
 
     const data = await response.json();
-    if (data.code !== "OK" || !data.items?.length) return null;
+    console.log("[productLookup] UPC ItemDB response:", data);
+    
+    if (data.code !== "OK" || !data.items?.length) {
+      console.log("[productLookup] UPC ItemDB - No items found");
+      return null;
+    }
 
     const item = data.items[0];
     const result: ProductLookupResult = {
@@ -57,13 +198,15 @@ async function lookupUPCItemDB(barcode: string): Promise<ProductLookupResult | n
     }
 
     return result.nome ? result : null;
-  } catch {
+  } catch (err) {
+    console.log("[productLookup] UPC ItemDB error:", err);
     return null;
   }
 }
 
 async function lookupOpenFoodFacts(barcode: string): Promise<ProductLookupResult | null> {
   try {
+    console.log("[productLookup] Trying OpenFoodFacts...");
     const response = await fetch(`${BARCODE_LOOKUP_API}/${barcode}.json`, {
       method: "GET",
       headers: {
@@ -72,14 +215,24 @@ async function lookupOpenFoodFacts(barcode: string): Promise<ProductLookupResult
       },
     });
 
-    if (!response.ok) return null;
+    console.log("[productLookup] OpenFoodFacts - Response status:", response.status);
+    if (!response.ok) {
+      console.log("[productLookup] OpenFoodFacts - Not OK");
+      return null;
+    }
 
     const data = await response.json();
-    if (data.status === 0 || !data.product) return null;
+    if (data.status === 0 || !data.product) {
+      console.log("[productLookup] OpenFoodFacts - No product");
+      return null;
+    }
 
     const product = data.product;
     const nome = product.product_name || product.product_name_en || "";
-    if (!nome) return null;
+    if (!nome) {
+      console.log("[productLookup] OpenFoodFacts - No name");
+      return null;
+    }
 
     const result: ProductLookupResult = { nome };
 
@@ -97,13 +250,15 @@ async function lookupOpenFoodFacts(barcode: string): Promise<ProductLookupResult
     }
 
     return result;
-  } catch {
+  } catch (err) {
+    console.log("[productLookup] OpenFoodFacts error:", err);
     return null;
   }
 }
 
 async function lookupDuckDuckGo(barcode: string): Promise<ProductLookupResult | null> {
   try {
+    console.log("[productLookup] Trying DuckDuckGo...");
     const response = await fetch(
       `https://api.duckduckgo.com/?q=${encodeURIComponent(barcode + " product")}&format=json&no_html=1&skip_disambig=1`,
       {
@@ -114,14 +269,72 @@ async function lookupDuckDuckGo(barcode: string): Promise<ProductLookupResult | 
       }
     );
 
-    if (!response.ok) return null;
+    console.log("[productLookup] DuckDuckGo - Response status:", response.status);
+    if (!response.ok) {
+      console.log("[productLookup] DuckDuckGo - Not OK");
+      return null;
+    }
 
     const data = await response.json();
     const nome = data.AbstractTitle || data.Heading || "";
-    if (!nome) return null;
+    if (!nome) {
+      console.log("[productLookup] DuckDuckGo - No title");
+      return null;
+    }
 
     return { nome };
-  } catch {
+  } catch (err) {
+    console.log("[productLookup] DuckDuckGo error:", err);
+    return null;
+  }
+}
+
+async function lookupBarcodeLookupAPI(barcode: string): Promise<ProductLookupResult | null> {
+  try {
+    console.log("[productLookup] Trying BarCode Lookup API...");
+    const response = await fetch(
+      `https://api.barcodelookup.com/v2/products?barcode=${barcode}&key=free`,
+      {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+          "User-Agent": "ValidadeApp/1.0",
+        },
+      }
+    );
+
+    console.log("[productLookup] BarCode Lookup - Response status:", response.status);
+    if (!response.ok) {
+      console.log("[productLookup] BarCode Lookup - Not OK");
+      return null;
+    }
+
+    const data = await response.json();
+    if (!data.products?.length) {
+      console.log("[productLookup] BarCode Lookup - No products");
+      return null;
+    }
+
+    const product = data.products[0];
+    const nome = product.product_name || product.title || "";
+    if (!nome) {
+      console.log("[productLookup] BarCode Lookup - No name");
+      return null;
+    }
+
+    const result: ProductLookupResult = { nome };
+
+    if (product.brand) {
+      result.marca = product.brand;
+    }
+
+    if (product.image_url) {
+      result.imagem = product.image_url;
+    }
+
+    return result;
+  } catch (err) {
+    console.log("[productLookup] BarCode Lookup API error:", err);
     return null;
   }
 }

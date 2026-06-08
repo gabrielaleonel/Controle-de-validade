@@ -95,14 +95,18 @@ export default function AddProductScreen() {
 
       setIsLoading(true);
       try {
+        console.log("[AddProduct] Buscando produto com código de barras:", clean);
         const result = await lookupProductByBarcode(clean);
         if (result?.nome) {
           setNome(result.nome);
           if (result.imagem) {
-            setFotoUri(result.imagem);
+            setFotoUri(prev => prev ?? result.imagem);
           }
+        } else {
+          console.log("[AddProduct] Nenhum produto encontrado para o código:", clean);
         }
-      } catch {
+      } catch (err) {
+        console.log("[AddProduct] Erro ao buscar produto:", err);
       } finally {
         setIsLoading(false);
       }
@@ -141,10 +145,10 @@ export default function AddProductScreen() {
     try {
       const result = await lookupProductByBarcode(barcode);
       if (result && result.nome) {
-        setNome(result.nome);
-        if (result.imagem && !fotoUri) {
-          setFotoUri(result.imagem);
-        }
+          setNome(result.nome);
+          if (result.imagem) {
+            setFotoUri(prev => prev ?? result.imagem);
+          }
       } else {
         Alert.alert(
           "Produto não encontrado",

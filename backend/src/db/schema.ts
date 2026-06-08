@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, real, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 export const products = sqliteTable(
   "products",
@@ -67,3 +67,28 @@ export const emailLogs = sqliteTable(
 
 export type EmailLogInsert = typeof emailLogs.$inferInsert;
 export type EmailLogSelect = typeof emailLogs.$inferSelect;
+
+export const medicationBarcodeCache = sqliteTable(
+  "medication_barcode_cache",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    barcode: text("barcode").notNull().unique(),
+    name: text("name").notNull(),
+    dosage: text("dosage"),
+    form: text("form", {
+      enum: ["comprimido", "capsula", "gotas", "ml", "sache", "ampola", "pomada", "spray", "outro"],
+    }),
+    source: text("source").notNull().default("manual-user-confirmed"),
+    confidence: real("confidence").notNull().default(0.5),
+    confirmedBy: text("confirmed_by"),
+    confirmedAt: text("confirmed_at"),
+    createdAt: text("created_at").notNull().default("(datetime('now'))"),
+    updatedAt: text("updated_at").notNull().default("(datetime('now'))"),
+  },
+  (table) => ({
+    barcodeUnique: uniqueIndex("uq_barcode_cache").on(table.barcode),
+  })
+);
+
+export type MedicationBarcodeCacheInsert = typeof medicationBarcodeCache.$inferInsert;
+export type MedicationBarcodeCacheSelect = typeof medicationBarcodeCache.$inferSelect;
