@@ -6,6 +6,7 @@ import {
 } from "expo-file-system/legacy";
 import { Product, AppSettings } from "../types";
 import { DATABASE_NAME, SETTINGS_KEY } from "../constants";
+import { syncSingleProduct, syncProducts } from "./apiClient";
 
 interface StoreData {
   products: Product[];
@@ -18,6 +19,9 @@ const DATA_FILE = `${documentDirectory}${DATABASE_NAME}.json`;
 const defaultSettings: AppSettings = {
   notificacoesAtivas: true,
   alertaNotificacao: true,
+  alertaEmail: false,
+  userEmail: "",
+  deviceUuid: "",
   diasAntecedencia: 7,
   googleApiKey: "",
   googleCx: "",
@@ -48,6 +52,10 @@ async function writeData(data: StoreData): Promise<void> {
   await writeAsStringAsync(DATA_FILE, JSON.stringify(data));
 }
 
+function shouldSync(settings: AppSettings): boolean {
+  return !!(settings.alertaEmail && settings.userEmail && settings.deviceUuid);
+}
+
 export async function insertProduct(
   product: Omit<Product, "id" | "criadoEm" | "atualizadoEm">
 ): Promise<number> {
@@ -66,6 +74,15 @@ export async function insertProduct(
   data.products.push(newProduct);
   data.nextId++;
   await writeData(data);
+
+  if (shouldSync(data.settings)) {
+    syncSingleProduct(
+      data.settings.deviceUuid,
+      data.settings.userEmail,
+      newProduct
+    ).catch(() => {});
+  }
+
   return newProduct.id;
 }
 
@@ -82,12 +99,26 @@ export async function updateProduct(
     atualizadoEm: new Date().toISOString(),
   };
   await writeData(data);
+
+  if (shouldSync(data.settings)) {
+    syncSingleProduct(
+      data.settings.deviceUuid,
+      data.settings.userEmail,
+      data.products[index]
+    ).catch(() => {});
+  }
 }
 
 export async function deleteProduct(id: number): Promise<void> {
   const data = await readData();
   data.products = data.products.filter((p) => p.id !== id);
   await writeData(data);
+
+  if (shouldSync(data.settings)) {
+    syncProducts(data.settings.deviceUuid, data.settings.userEmail, data.products).catch(
+      () => {}
+    );
+  }
 }
 
 export async function getProduct(id: number): Promise<Product | null> {

@@ -1,5 +1,5 @@
 {
-  "name": "validade",
+  "name": "@gabrielaleonel/validade",
   "version": "1.0.0",
   "main": "expo-router/entry",
   "scripts": {
@@ -39,7 +39,9 @@
     "@types/react": "~19.1.10",
     "typescript": "~5.9.2"
   },
-  "private": true,
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/gabrielaleonel/Controle-de-validade.git"

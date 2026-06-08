@@ -1,0 +1,31 @@
+{
+  "name": "validade-email-api",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "tsc --noEmit",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "next": "^15.3.2",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "@libsql/client": "^0.15.0",
+    "drizzle-orm": "^0.42.0",
+    "resend": "^4.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "@types/react": "^19.1.10",
+    "@types/react-dom": "^19.1.4",
+    "drizzle-kit": "^0.30.0",
+    "typescript": "~5.9.2"
+  }
+}

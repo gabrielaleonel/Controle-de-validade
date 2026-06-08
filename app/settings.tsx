@@ -13,6 +13,8 @@ import { useRouter } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { AppSettings } from "../src/types";
 import { getSettings, saveSettings } from "../src/services/database";
+import { getDeviceUuid } from "../src/services/device";
+import { syncProducts } from "../src/services/apiClient";
 import {
   requestNotificationPermissions,
   cancelAllNotifications,
@@ -23,12 +25,16 @@ export default function SettingsScreen() {
   const [settings, setSettings] = useState<AppSettings>({
     notificacoesAtivas: true,
     alertaNotificacao: true,
+    alertaEmail: false,
+    userEmail: "",
+    deviceUuid: "",
     diasAntecedencia: 7,
     googleApiKey: "",
     googleCx: "",
   });
   const [saving, setSaving] = useState(false);
   const [diasText, setDiasText] = useState("7");
+  const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
     loadSettings();
@@ -37,10 +43,12 @@ export default function SettingsScreen() {
   const loadSettings = async () => {
     try {
       const data = await getSettings();
-      setSettings(data);
+      const uuid = await getDeviceUuid();
+      setSettings({ ...data, deviceUuid: uuid });
       setDiasText(String(data.diasAntecedencia));
     } catch {
-      // Default settings will be used
+      const uuid = await getDeviceUuid();
+      setSettings((prev) => ({ ...prev, deviceUuid: uuid }));
     }
   };
 
@@ -71,6 +79,23 @@ export default function SettingsScreen() {
 
       if (!newSettings.notificacoesAtivas) {
         await cancelAllNotifications();
+      }
+
+      if (newSettings.alertaEmail && newSettings.userEmail && newSettings.deviceUuid) {
+        setSyncing(true);
+        try {
+          const { getAllProducts } = await import("../src/services/database");
+          const allProducts = await getAllProducts();
+          await syncProducts(
+            newSettings.deviceUuid,
+            newSettings.userEmail,
+            allProducts
+          );
+        } catch {
+          // Sync failure is non-blocking
+        } finally {
+          setSyncing(false);
+        }
       }
 
       Alert.alert("Sucesso", "Configurações salvas!", [
@@ -155,6 +180,54 @@ export default function SettingsScreen() {
       </View>
 
       <View style={styles.section}>
+        <Text style={styles.sectionTitle}>E-mail</Text>
+        <View style={styles.card}>
+          <SettingRow
+            icon="email"
+            label="Alerta por e-mail"
+            description="Receber alertas de vencimento no e-mail"
+          >
+            <Switch
+              value={settings.alertaEmail}
+              onValueChange={(value) =>
+                setSettings({ ...settings, alertaEmail: value })
+              }
+              trackColor={{ false: "#E0E0E0", true: "#90CAF9" }}
+              thumbColor={settings.alertaEmail ? "#1565C0" : "#9E9E9E"}
+            />
+          </SettingRow>
+
+          {settings.alertaEmail && (
+            <>
+              <View style={styles.divider} />
+              <View style={styles.emailInputRow}>
+                <MaterialCommunityIcons name="email-outline" size={20} color="#757575" />
+                <TextInput
+                  style={styles.emailInput}
+                  placeholder="seu@email.com"
+                  value={settings.userEmail}
+                  onChangeText={(text) =>
+                    setSettings({ ...settings, userEmail: text })
+                  }
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  placeholderTextColor="#9E9E9E"
+                />
+              </View>
+              <View style={styles.emailNote}>
+                <MaterialCommunityIcons name="information-outline" size={16} color="#757575" />
+                <Text style={styles.emailNoteText}>
+                  Os produtos serão sincronizados com o servidor. Você receberá
+                  até 3 e-mails por dia para cada produto próximo do vencimento.
+                </Text>
+              </View>
+            </>
+          )}
+        </View>
+      </View>
+
+      <View style={styles.section}>
         <Text style={styles.sectionTitle}>Busca automática</Text>
         <View style={styles.card}>
           <View style={styles.settingRow}>
@@ -209,12 +282,18 @@ export default function SettingsScreen() {
       </View>
 
       <TouchableOpacity
-        style={[styles.saveButton, saving && styles.buttonDisabled]}
+        style={[styles.saveButton, (saving || syncing) && styles.buttonDisabled]}
         onPress={handleSave}
-        disabled={saving}
+        disabled={saving || syncing}
       >
-        <MaterialCommunityIcons name="check" size={20} color="#fff" />
-        <Text style={styles.saveButtonText}>Salvar configurações</Text>
+        <MaterialCommunityIcons
+          name={syncing ? "sync" : "check"}
+          size={20}
+          color="#fff"
+        />
+        <Text style={styles.saveButtonText}>
+          {syncing ? "Sincronizando..." : "Salvar configurações"}
+        </Text>
       </TouchableOpacity>
     </ScrollView>
   );

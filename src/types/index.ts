@@ -20,6 +20,9 @@ export interface ProductWithStatus extends Product {
 export interface AppSettings {
   notificacoesAtivas: boolean;
   alertaNotificacao: boolean;
+  alertaEmail: boolean;
+  userEmail: string;
+  deviceUuid: string;
   diasAntecedencia: number;
   googleApiKey?: string;
   googleCx?: string;
