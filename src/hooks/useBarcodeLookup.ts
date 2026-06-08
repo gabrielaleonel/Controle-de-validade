@@ -31,7 +31,7 @@ export function useBarcodeLookup() {
     const parsed = barcodeSchema.safeParse(barcode);
     if (!parsed.success) {
       setResult(null);
-      setError(parsed.error.errors[0].message);
+      setError(parsed.error.issues[0].message);
       setIsLoading(false);
       return;
     }

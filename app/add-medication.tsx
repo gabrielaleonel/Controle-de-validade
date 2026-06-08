@@ -205,7 +205,7 @@ export default function AddMedicationScreen() {
       if (result && result.nome) {
         setNome(result.nome);
         if (result.imagem) {
-          setFotoUri(prev => prev ?? result.imagem);
+          setFotoUri(prev => prev ?? result.imagem ?? null);
         }
         setBarcodeSource("fallback");
         setBarcodeConfidence(null);

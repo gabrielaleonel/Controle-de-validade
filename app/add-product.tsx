@@ -100,7 +100,7 @@ export default function AddProductScreen() {
         if (result?.nome) {
           setNome(result.nome);
           if (result.imagem) {
-            setFotoUri(prev => prev ?? result.imagem);
+            setFotoUri(prev => prev ?? result.imagem ?? null);
           }
         } else {
           console.log("[AddProduct] Nenhum produto encontrado para o código:", clean);
@@ -147,7 +147,7 @@ export default function AddProductScreen() {
       if (result && result.nome) {
           setNome(result.nome);
           if (result.imagem) {
-            setFotoUri(prev => prev ?? result.imagem);
+            setFotoUri(prev => prev ?? result.imagem ?? null);
           }
       } else {
         Alert.alert(
