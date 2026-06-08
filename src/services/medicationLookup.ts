@@ -1,4 +1,4 @@
-import { BARCODE_LOOKUP_API } from "../constants";
+import { API_BASE_URL, BARCODE_LOOKUP_API } from "../constants";
 import { ProductLookupResult } from "../types";
 import { getSettings } from "./database";
 
@@ -61,7 +61,7 @@ async function lookupPharmacyBackend(
 ): Promise<ProductLookupResult | null> {
   try {
     const response = await fetch(
-      `http://localhost:3000/api/product-lookup-pharmacy?barcode=${barcode}`,
+      `${API_BASE_URL}/api/product-lookup-pharmacy?barcode=${barcode}`,
       {
         method: "GET",
         headers: {
