@@ -2,6 +2,8 @@ import { API_BASE_URL, BARCODE_LOOKUP_API } from "../constants";
 import { ProductLookupResult } from "../types";
 import { getSettings } from "./database";
 
+const PRODUCT_LOOKUP_BACKEND_URL = `${API_BASE_URL}/api/product-lookup-pharmacy`;
+
 export async function lookupMedicationByBarcode(
   barcode: string
 ): Promise<ProductLookupResult | null> {
@@ -61,7 +63,7 @@ async function lookupPharmacyBackend(
 ): Promise<ProductLookupResult | null> {
   try {
     const response = await fetch(
-      `${API_BASE_URL}/api/product-lookup-pharmacy?barcode=${barcode}`,
+      `${PRODUCT_LOOKUP_BACKEND_URL}?barcode=${encodeURIComponent(barcode)}`,
       {
         method: "GET",
         headers: {
@@ -70,26 +72,22 @@ async function lookupPharmacyBackend(
       }
     );
 
-    if (!response.ok) return null;
+    if (!response.ok) {
+      console.log("[medicationLookup] Backend retornou erro:", response.status);
+      return null;
+    }
 
     const data = await response.json();
 
     if (!data.success || !data.product?.nome) return null;
 
-    const result: ProductLookupResult = {
+    return {
       nome: data.product.nome,
+      imagem: data.product.imagem || undefined,
+      marca: data.product.marca || undefined,
     };
-
-    if (data.product.imagem) {
-      result.imagem = data.product.imagem;
-    }
-
-    if (data.product.marca) {
-      result.marca = data.product.marca;
-    }
-
-    return result;
-  } catch {
+  } catch (error) {
+    console.log("[medicationLookup] Erro no backend:", error);
     return null;
   }
 }

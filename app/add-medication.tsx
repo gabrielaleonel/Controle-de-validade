@@ -24,6 +24,7 @@ import {
   cancelMedicationNotifications,
 } from "../src/services/medicationNotifications";
 import { lookupMedicationByBarcode } from "../src/services/medicationLookup";
+import { lookupProductByBarcode } from "../src/services/productLookup";
 import { API_BASE_URL } from "../src/constants";
 import { calculateEndDate } from "../src/utils/medicationCalculations";
 import {
@@ -95,51 +96,35 @@ export default function AddMedicationScreen() {
   }, [loadMedication]);
 
   useEffect(() => {
-    if (isEditing) return;
-    if (scannedRef.current) {
-      scannedRef.current = false;
-      return;
-    }
-
-    const clean = codigoBarras.replace(/\s/g, "");
+    const clean = codigoBarras.replace(/\D/g, "");
     if (clean.length < 8) return;
 
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current);
-    }
-
-    debounceRef.current = setTimeout(async () => {
-      const existing = await getMedicationByBarcode(clean);
-      if (existing) {
-        Alert.alert(
-          "Medicamento já cadastrado",
-          `O medicamento "${existing.nome}" já está cadastrado com este código de barras.`,
-          [{ text: "OK" }]
-        );
-        return;
-      }
-
+    const timer = setTimeout(async () => {
       setIsLoading(true);
       try {
-        const result = await lookupMedicationByBarcode(clean);
+        console.log("[Medicamento] Buscando código:", clean);
+        const result = await lookupProductByBarcode(clean);
+        console.log("[Medicamento] Resultado:", result);
+
         if (result?.nome) {
           setNome(result.nome);
           if (result.imagem) {
-            setFotoUri(result.imagem);
+            setFotoUri((prev) => prev ?? result.imagem ?? null);
+          }
+          const dosagemEncontrada = extrairDosagem(result.nome);
+          if (dosagemEncontrada) {
+            setDosagem(dosagemEncontrada);
           }
         }
-      } catch {
+      } catch (error) {
+        console.log("[Medicamento] Erro ao buscar medicamento:", error);
       } finally {
         setIsLoading(false);
       }
     }, 600);
 
-    return () => {
-      if (debounceRef.current) {
-        clearTimeout(debounceRef.current);
-      }
-    };
-  }, [codigoBarras, isEditing]);
+    return () => clearTimeout(timer);
+  }, [codigoBarras]);
 
   const handleBarcodeDetected = async (barcode: string) => {
     setShowScanner(false);
@@ -222,6 +207,11 @@ export default function AddMedicationScreen() {
       setIsLoading(false);
     }
   };
+
+  function extrairDosagem(nome: string): string {
+    const match = nome.match(/\b\d+(?:[,.]\d+)?\s?(mg|g|mcg|µg|ml|mL|UI)\b/i);
+    return match ? match[0].replace(",", ".") : "";
+  }
 
   function formatDateParaInput(isoDate: string): string {
     if (!isoDate) return "";

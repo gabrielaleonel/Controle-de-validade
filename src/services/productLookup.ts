@@ -2,6 +2,8 @@ import { API_BASE_URL, BARCODE_LOOKUP_API } from "../constants";
 import { ProductLookupResult } from "../types";
 import { getSettings } from "./database";
 
+const PRODUCT_LOOKUP_BACKEND_URL = `${API_BASE_URL}/api/product-lookup-pharmacy`;
+
 export async function lookupProductByBarcode(
   barcode: string
 ): Promise<ProductLookupResult | null> {
@@ -67,9 +69,8 @@ async function lookupPharmacyBackend(
   barcode: string
 ): Promise<ProductLookupResult | null> {
   try {
-    // Buscar no backend que faz scraping das farmácias
     const response = await fetch(
-      `${API_BASE_URL}/api/product-lookup-pharmacy?barcode=${barcode}`,
+      `${PRODUCT_LOOKUP_BACKEND_URL}?barcode=${encodeURIComponent(barcode)}`,
       {
         method: "GET",
         headers: {
@@ -79,36 +80,24 @@ async function lookupPharmacyBackend(
     );
 
     if (!response.ok) {
-      console.log(
-        "[productLookup] Pharmacy backend - Response not OK:",
-        response.status
-      );
+      console.log("[productLookup] Backend retornou erro:", response.status);
       return null;
     }
 
     const data = await response.json();
-    console.log("[productLookup] Pharmacy backend response:", data);
+    console.log("[productLookup] Resposta do backend:", data);
 
     if (!data.success || !data.product?.nome) {
-      console.log("[productLookup] Pharmacy backend - No product");
       return null;
     }
 
-    const result: ProductLookupResult = {
+    return {
       nome: data.product.nome,
+      imagem: data.product.imagem || undefined,
+      marca: data.product.marca || undefined,
     };
-
-    if (data.product.imagem) {
-      result.imagem = data.product.imagem;
-    }
-
-    if (data.product.marca) {
-      result.marca = data.product.marca;
-    }
-
-    return result;
-  } catch (err) {
-    console.log("[productLookup] Pharmacy backend error:", err);
+  } catch (error) {
+    console.log("[productLookup] Erro no backend:", error);
     return null;
   }
 }
