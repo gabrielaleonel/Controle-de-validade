@@ -20,6 +20,10 @@ import {
   getMedicationByBarcode,
 } from "../src/services/medicationDatabase";
 import {
+  getBarcodeCache,
+  setBarcodeCache,
+} from "../src/services/barcodeCache";
+import {
   scheduleMedicationNotifications,
   cancelMedicationNotifications,
 } from "../src/services/medicationNotifications";
@@ -181,6 +185,19 @@ export default function AddMedicationScreen() {
           },
         ]
       );
+      return;
+    }
+
+    const cached = await getBarcodeCache(barcode);
+    if (cached) {
+      setNome(cached.nome);
+      if (cached.fotoUri) {
+        setFotoUri(cached.fotoUri);
+      }
+      setBarcodeSource("cache-local");
+      setBarcodeConfidence(null);
+      setBarcodeLookupAt(new Date().toISOString());
+      setIsLoading(false);
       return;
     }
 
@@ -411,6 +428,14 @@ export default function AddMedicationScreen() {
           observacoes: observacoes.trim() || null,
         });
 
+        if (codigoBarras.trim()) {
+          setBarcodeCache(
+            codigoBarras.trim(),
+            nome.trim(),
+            fotoUri
+          );
+        }
+
         scheduleMedicationNotifications(
           editId,
           nome.trim(),
@@ -461,6 +486,14 @@ export default function AddMedicationScreen() {
         });
 
         saveBarcodeToCache();
+
+        if (codigoBarras.trim()) {
+          setBarcodeCache(
+            codigoBarras.trim(),
+            nome.trim(),
+            fotoUri
+          );
+        }
 
         Alert.alert("Sucesso", "Medicamento cadastrado com sucesso!", [
           { text: "OK", onPress: () => router.back() },
