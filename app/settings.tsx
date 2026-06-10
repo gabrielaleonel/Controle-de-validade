@@ -15,6 +15,7 @@ import { AppSettings } from "../src/types";
 import { getSettings, saveSettings } from "../src/services/database";
 import { getDeviceUuid } from "../src/services/device";
 import { syncProducts } from "../src/services/apiClient";
+import { useAuth } from "../src/contexts/AuthContext";
 import {
   requestNotificationPermissions,
   cancelAllNotifications,
@@ -22,6 +23,7 @@ import {
 
 export default function SettingsScreen() {
   const router = useRouter();
+  const { user, signOut } = useAuth();
   const [settings, setSettings] = useState<AppSettings>({
     notificacoesAtivas: true,
     alertaNotificacao: true,
@@ -295,6 +297,41 @@ export default function SettingsScreen() {
           {syncing ? "Sincronizando..." : "Salvar configurações"}
         </Text>
       </TouchableOpacity>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Conta</Text>
+        <View style={styles.card}>
+          <View style={styles.settingRow}>
+            <View style={styles.settingInfo}>
+              <View style={styles.settingRowHeader}>
+                <MaterialCommunityIcons name="account-circle" size={20} color="#1565C0" />
+                <Text style={styles.settingLabel}>{user?.name || "Usuário"}</Text>
+              </View>
+              <Text style={styles.settingDescription}>{user?.email || ""}</Text>
+            </View>
+          </View>
+          <View style={styles.divider} />
+          <TouchableOpacity
+            style={styles.logoutRow}
+            onPress={() => {
+              Alert.alert("Sair", "Tem certeza que deseja sair?", [
+                { text: "Cancelar", style: "cancel" },
+                {
+                  text: "Sair",
+                  style: "destructive",
+                  onPress: async () => {
+                    await signOut();
+                    router.replace("/login");
+                  },
+                },
+              ]);
+            }}
+          >
+            <MaterialCommunityIcons name="logout" size={20} color="#D32F2F" />
+            <Text style={styles.logoutText}>Sair da conta</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
     </ScrollView>
   );
 }
@@ -471,5 +508,17 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: {
     opacity: 0.7,
+  },
+  logoutRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    gap: 8,
+  },
+  logoutText: {
+    fontSize: 15,
+    fontWeight: "500",
+    color: "#D32F2F",
   },
 });

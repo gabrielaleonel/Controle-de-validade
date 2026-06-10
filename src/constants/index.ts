@@ -1,9 +1,12 @@
+export const USE_MOCK_AUTH = true;
+
 export const DEFAULT_DIAS_ANTECEDENCIA = 7;
 export const DATABASE_NAME = "validade.db";
 export const SETTINGS_KEY = "app_settings";
 export const DEVICE_UUID_FILE = "device_uuid.txt";
 
 export const API_BASE_URL = "https://validade-email-api.vercel.app";
+export const AUTH_API_BASE_URL = "http://localhost:8000";
 export const SYNC_API_KEY = "cole_a_chave_de_sync_aqui";
 
 export const STATUS_LABELS = {
